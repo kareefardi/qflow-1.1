@@ -164,6 +164,7 @@ set blif_opts = "${blif_opts} -buf ${bufcell} ${bufpin_in} ${bufpin_out}"
 
 # Determine version of yosys
 set versionstring = `${bindir}/yosys -V | cut -d' ' -f2`
+set versionstring = `echo $versionstring | sed 's/+//g'`
 set major = `echo $versionstring | cut -d. -f1`
 set minor = `echo $versionstring | cut -d. -f2`
 
