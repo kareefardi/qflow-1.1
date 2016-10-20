@@ -711,7 +711,7 @@ while {[gets $fnet line] >= 0} {
 
 	if {$mode == "inputs" || $mode == "outputs"} {
 		foreach pinname $line {
-			if {[lsearch $placedpads $pinname] == 0} {
+			if {[lsearch $placedpads $pinname] < 0} {
 				puts $fcel "pad $padnum name twpin_$pinname"
 				puts $fcel "corners 4 -$px -$py -$px $py $px $py $px -$py"
 				puts $fcel "pin name $pinname signal $pinname layer 1 0 0"
