@@ -109,11 +109,21 @@ if ( !( -f ${rootname}.v )) then
 		|& tee -a ${synthlog}
 endif
 
+
 cat > ${rootname}.ys << EOF
 # Synthesis script for yosys created by qflow
 read_liberty -lib -ignore_miss_dir -setattr blackbox ${libertypath}
-read_verilog ${rootname}.v
 EOF
+
+if ( !( ${?liberty_files} )) then
+	echo "No additional liberty files specified"
+else
+	foreach cell (${liberty_files})
+		echo "read_liberty -lib -ignore_miss_dir -setattr blackbox ${cell}" >> ${rootname}.ys
+	end
+endif
+
+echo "read_verilog ${rootname}.v" >> ${rootname}.ys
 
 foreach subname ( $uniquedeplist )
     if ( !( -f ${subname}.v )) then
@@ -189,6 +199,7 @@ cat > ${rootname}.ys << EOF
 # Synthesis script for yosys created by qflow
 EOF
 
+
 # From yosys version 3.0.0+514, structural verilog using cells from the
 # the same standard cell set that is mapped by abc is supported.
 if (( ${major} == 0 && ${minor} == 3 && ${revision} == 0 && ${subrevision} >= 514) || \
@@ -198,12 +209,16 @@ if (( ${major} == 0 && ${minor} == 3 && ${revision} == 0 && ${subrevision} >= 51
 cat > ${rootname}.ys << EOF
 read_liberty -lib -ignore_miss_dir -setattr blackbox ${libertypath}
 EOF
+
+if ( !( ${?liberty_files} )) then
+	echo "No additional liberty files specified"
+else
+	foreach cell (${liberty_files})
+		echo "read_liberty -lib -ignore_miss_dir -setattr blackbox ${cell}" >> ${rootname}.ys
+	end
 endif
 
-cat > ${rootname}.ys << EOF
-read_liberty -lib -ignore_miss_dir -setattr blackbox ${libertypath}
-read_verilog ${rootname}.v
-EOF
+echo "read_verilog ${rootname}.v" >> ${rootname}.ys
 
 foreach subname ( $uniquedeplist )
     echo "read_verilog ${subname}.v" >> ${rootname}.ys
@@ -241,16 +256,22 @@ EOF
 
 else
 
-   cat >> ${rootname}.ys << EOF
+
+if ( !( ${?yosys_noopt} )) then
+cat >> ${rootname}.ys << EOF
 
 # High-level synthesis
 proc; memory; opt; fsm; opt
 
 # Map to internal cell library
 techmap; opt
+
 EOF
 
 endif
+endif
+
+if ( !( ${?yosys_noopt} )) then
 
 cat >> ${rootname}.ys << EOF
 # Map register flops
@@ -258,6 +279,16 @@ dfflibmap -liberty ${libertypath}
 opt
 
 EOF
+
+else
+
+cat >> ${rootname}.ys << EOF
+# Map register flops
+dfflibmap -liberty ${libertypath}
+
+EOF
+
+endif
 
 if ( ${?abc_script} ) then
    if ( ${abc_script} != "" ) then
@@ -320,12 +351,25 @@ EOF
    endif
 endif
 
+if ( !( ${?yosys_noopt} )) then
+
 cat >> ${rootname}.ys << EOF
 # Cleanup
 opt
 clean
 write_blif ${blif_opts} ${rootname}_mapped.blif
+
 EOF
+
+else
+
+cat >> ${rootname}.ys << EOF
+# Cleanup
+write_blif ${blif_opts} ${rootname}_mapped.blif
+
+EOF
+
+endif
 
 #---------------------------------------------------------------------
 # Yosys synthesis
