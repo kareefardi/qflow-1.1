@@ -8,3 +8,5 @@ inca.*.pak
 .nfs*
 *.cd-
 */mommdl/
+config.log
+config.status
