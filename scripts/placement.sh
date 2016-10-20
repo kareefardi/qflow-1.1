@@ -129,8 +129,15 @@ cd ${projectpath}
 
 echo "Running blif2cel.tcl" |& tee -a ${synthlog}
 
-${scriptdir}/blif2cel.tcl ${synthdir}/${rootname}.blif \
-	${lefpath} ${layoutdir}/${rootname}.cel >>& ${synthlog}
+set hmpars ""
+foreach lefn ${hardmakros} {
+	set hmpars "$hmpars --hard-makro $lefn "
+}
+
+./blif2cel.tcl \
+	--blif ${synthdir}/${rootname}.blif\
+	$hmpars --lef ${lefpath}\
+	--cel ${layoutdir}/${rootname}.cel >>& ${synthlog}
 
 #---------------------------------------------------------------------
 # Spot check:  Did blif2cel produce file ${rootname}.cel?
