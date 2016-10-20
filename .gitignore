@@ -10,3 +10,10 @@ inca.*.pak
 */mommdl/
 config.log
 config.status
+scripts/qflow
+scripts/qflow.sh
+src/Makefile
+tech/Makefile
+tech/osu018/Makefile
+tech/osu035/Makefile
+tech/osu050/Makefile
