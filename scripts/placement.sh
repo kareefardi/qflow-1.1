@@ -129,14 +129,18 @@ cd ${projectpath}
 
 echo "Running blif2cel.tcl" |& tee -a ${synthlog}
 
-set hmpars ""
-foreach lefn ${hardmakros} {
-	set hmpars "$hmpars --hard-makro $lefn "
-}
+if ( !( ${?hard_cells} )) then
+	set blif2cel_commands = ""
+else
+	set blif2cel_commands = ""
+	foreach cell (${hard_cells})
+		set blif2cel_commands = "${blif2cel_commands} --hard-makro ${cell}"
+	end
+endif
 
-./blif2cel.tcl \
+${scriptdir}/blif2cel.tcl \
 	--blif ${synthdir}/${rootname}.blif\
-	$hmpars --lef ${lefpath}\
+	${blif2cel_commands} --lef ${lefpath}\
 	--cel ${layoutdir}/${rootname}.cel >>& ${synthlog}
 
 #---------------------------------------------------------------------
