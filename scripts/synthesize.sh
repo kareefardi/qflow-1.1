@@ -248,6 +248,9 @@ if ( ${?yosys_script} ) then
    endif
 else if ( ${major} != 0 || ${minor} >= 5 ) then
 
+
+
+if ( !( ${?yosys_noopt} )) then
    cat >> ${rootname}.ys << EOF
 
 # High-level synthesis
@@ -256,6 +259,23 @@ EOF
 
 else
 
+   cat >> ${rootname}.ys << EOF
+
+# High-level synthesis
+synth -top ${rootname} -run proc
+synth -top ${rootname} -run check
+#synth -top ${rootname} -run wreduce
+synth -top ${rootname} -run alumacc
+synth -top ${rootname} -run share
+synth -top ${rootname} -run fsm
+proc
+memory
+techmap
+EOF
+
+endif
+
+else
 
 if ( !( ${?yosys_noopt} )) then
 cat >> ${rootname}.ys << EOF
@@ -271,21 +291,30 @@ EOF
 endif
 endif
 
-if ( !( ${?yosys_noopt} )) then
 
 cat >> ${rootname}.ys << EOF
 # Map register flops
 dfflibmap -liberty ${libertypath}
-opt
+EOF
 
+if ( !( ${?liberty_files} )) then
+	echo "No additional liberty files specified"
+else
+	foreach cell (${liberty_files})
+		echo "dfflibmap -liberty ${cell}" >> ${rootname}.ys
+	end
+endif
+
+if ( !( ${?yosys_noopt} )) then
+
+cat >> ${rootname}.ys << EOF
+opt
 EOF
 
 else
 
 cat >> ${rootname}.ys << EOF
-# Map register flops
-dfflibmap -liberty ${libertypath}
-
+# yosys_noopt has been set
 EOF
 
 endif
@@ -357,15 +386,18 @@ cat >> ${rootname}.ys << EOF
 # Cleanup
 opt
 clean
-write_blif ${blif_opts} ${rootname}_mapped.blif
+
+#Write file
+write_blif -top ${rootname} ${blif_opts} ${rootname}_mapped.blif
 
 EOF
 
 else
 
 cat >> ${rootname}.ys << EOF
-# Cleanup
-write_blif ${blif_opts} ${rootname}_mapped.blif
+
+#Write file
+write_blif -top ${rootname} ${blif_opts} ${rootname}_mapped.blif
 
 EOF
 
