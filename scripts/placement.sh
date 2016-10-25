@@ -129,13 +129,16 @@ cd ${projectpath}
 
 echo "Running blif2cel.tcl" |& tee -a ${synthlog}
 
-if ( !( ${?hard_cells} )) then
-	set blif2cel_commands = ""
-else
-	set blif2cel_commands = ""
+set blif2cel_commands = ""
+
+if ( ${?hard_cells} ) then
 	foreach cell (${hard_cells})
 		set blif2cel_commands = "${blif2cel_commands} --hard-makro ${cell}"
 	end
+endif
+
+if ( ${?pad_config} ) then
+	set blif2cel_commands = "${blif2cel_commands} --pad-config ${pad_config}"
 endif
 
 ${scriptdir}/blif2cel.tcl \
