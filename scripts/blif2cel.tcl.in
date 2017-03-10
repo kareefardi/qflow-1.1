@@ -98,7 +98,6 @@ if {[info exists padconfig]} {
    }
 }
 
-
 #-------------------------------------------------------------
 
 set lefname [file rootname $leffile]
@@ -110,35 +109,35 @@ if {"$lefname" == "$leffile"} {
 # Open files for read and write
 
 if [catch {open $leffile r} flef] {
-	puts stderr "Error: second argument is not a LEF file ($leffile)!"
-	exit 0
+    puts stderr "Error: second argument is not a LEF file ($leffile)!"
+    exit 0
 } else {
-	puts "Loaded LEF file ($leffile) for reading..."
+    puts "Loaded LEF file ($leffile) for reading..."
 }
 
 if [catch {open $bliffile r} fnet] {
-	puts stderr "Error: can't open file $bliffile for reading!"
-	exit 0
+    puts stderr "Error: can't open file $bliffile for reading!"
+    exit 0
 } else {
-	puts "Loaded BLIF file ($bliffile) for reading ..."
+    puts "Loaded BLIF file ($bliffile) for reading ..."
 }
 
 if [catch {open $celfile w} fcel] {
-	puts stderr "Error: can't open file $celfile for writing!"
-	exit 0
+    puts stderr "Error: can't open file $celfile for writing!"
+    exit 0
 } else {
-	puts "Loaded CEL file ($celfile) for writing..."
+    puts "Loaded CEL file ($celfile) for writing..."
 }
 
 set fhardmacro {}
 foreach hardmacro $hardmacros {
-	if [catch {open $hardmakro r} fhardmakro_tmp] {
-		puts stderr "Error: can't open file $hardmakro for reading!"
-		exit 0
-	} else {
-		puts "Loaded $hardmakro file for reading..."
-		lappend fhardmakro $fhardmakro_tmp
-	}
+    if [catch {open $hardmacro r} fhardmacro_tmp] {
+	puts stderr "Error: can't open file $hardmacro for reading!"
+	exit 0
+    } else {
+	puts "Loaded $hardmacro file for reading..."
+	lappend fhardmacro $fhardmacro_tmp
+    }
 }
 
 #----------------------------------------------------------------
@@ -547,75 +546,6 @@ foreach fhardmacro $fhardmacro {
     }
 }
 
-set label_hard_macro {}
-foreach fhardmacro $fhardmakro {
-	puts stdout "Reading macros from hard makro LEF file. . ."
-	flush stdout
-
-	while {[gets $fhardmacro line] >= 0} {
-		if [regexp {[ \t]*LAYER[ \t]+(.+)[ \t]*$} $line lmatch layername] {
-			parse_layer $fhardmacro $layername
-		} elseif [regexp {[ \t]*MACRO[ \t]+(.+)[ \t]*$} $line lmatch macroname] {
-			if {[lsearch $macrolist $macroname] >= 0} {
-				# Parse the "macro" statement
-				parse_hard_macro $fhardmacro $macroname
-				lappend label_hard_macro $macroname
-			} else {
-				# This macro is not used. . . skip to end of macro
-				while {[gets $fhardmacro line] >= 0} {
-					if [regexp {[ \t]*END[ \t]+(^:+)[ \t]*$} $line lmatch macrotest] {
-						if {"$macroname" == "$macrotest"} {
-							break
-						}
-					}
-				}
-			}
-		} elseif [regexp {[ \t]*VIA[ \t]+([^ \t]+)} $line lmatch vianame] {
-			skip_section $fhardmacro $vianame
-		} elseif [regexp {[ \t]*VIARULE[ \t]+([^ \t]+)} $line lmatch viarulename] {
-			skip_section $fhardmacro $viarulename
-		} elseif [regexp {[ \t]*NONDEFAULTRULE[ \t]+([^ \t]+)} $line lmatch rulename] {
-			skip_section $fhardmacro $rulename
-		} elseif [regexp {[ \t]*SITE[ \t]+(.+)[ \t]*$} $line lmatch sitename] {
-			skip_section $fhardmacro $sitename
-		} elseif [regexp {[ \t]*UNITS[ \t]*$} $line lmatch] {
-			skip_section $fhardmacro UNITS
-		} elseif [regexp {[ \t]*SPACING[ \t]*$} $line lmatch] {
-			skip_section $fhardmacro SPACING
-		} elseif [regexp {[ \t]*PROPERTYDEFINITIONS[ \t]*$} $line lmatch] {
-			skip_section $fhardmacro PROPERTYDEFINITIONS
-		} elseif [regexp {[ \t]*END[ \t]+LIBRARY[ \t]*$} $line lmatch] {
-			break
-		} elseif [regexp {^[ \t]*#} $line lmatch] {
-			# Comment line, ignore.
-		} elseif ![regexp {^[ \t]*$} $line lmatch] {
-			# Other things we don't care about
-			set matches 0
-			if [regexp {[ \t]*NAMESCASESENSITIVE} $line lmatch] {
-				incr matches
-			} elseif [regexp {[ \t]*VERSION} $line lmatch] {
-				incr matches
-			} elseif [regexp {[ \t]*BUSBITCHARS} $line lmatch] {
-				incr matches
-			} elseif [regexp {[ \t]*DIVIDERCHAR} $line lmatch] {
-				incr matches
-			} elseif [regexp {[ \t]*USEMINSPACING} $line lmatch] {
-				incr matches
-			} elseif [regexp {[ \t]*CLEARANCEMEASURE} $line lmatch] {
-				incr matches
-			} elseif [regexp {[ \t]*MANUFACTURINGGRID} $line lmatch] {
-				incr matches
-			} elseif [regexp {[ \t]*MAXVIASTACK} $line lmatch] {
-			# We *should* care about this one;  need to pass it on to the router
-				incr matches
-			} else {
-				puts stderr "Unexpected input in LEF file:  Only macro defs were expected!"
-				puts stdout "Line is: $line"
-			}
-		}
-	}
-}
-
 # If leffile didn't set pitch, then use defaults
 if {$pitchx == 0} {
     set pitchx 160
@@ -731,6 +661,7 @@ set py [expr int($pitchy / 2)]
 
 set pad_fixed False
 array set pad_positions {}
+set placedpads {}
 
 if {[info exists padconfig]} {
 	set pad_fixed True
@@ -756,7 +687,6 @@ if {[info exists padconfig]} {
 set fnet [open $bliffile r]
 set mode none
 set padnum 1
-set placedpads {}
 while {[gets $fnet line] >= 0} {
     if [regexp {^[ \t]*\.inputs[ \t]+(.*)$} $line lmatch rest] {
 	set mode inputs
