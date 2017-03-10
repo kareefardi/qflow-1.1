@@ -89,6 +89,7 @@ if {[info exists args(cel)]} {
 } else {
     puts stderr "No CEL file defined"
     exit
+}
 
 if {[info exists padconfig]} {
    if {!([file exists $padconfig])} {
