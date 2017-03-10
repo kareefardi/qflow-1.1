@@ -9,6 +9,7 @@ LIBS = @LIBS@
 LDFLAGS = @LDFLAGS@
 INSTALL = @INSTALL@
 
+QFLOW_BIN_DIR = @QFLOW_BIN_DIR@
 QFLOW_LIB_DIR = @QFLOW_LIB_DIR@
 QFLOW_GRAYWOLF_PATH = @QFLOW_GRAYWOLF_PATH@
 QFLOW_QROUTER_PATH = @QFLOW_QROUTER_PATH@
@@ -26,8 +27,6 @@ HASHLIB = hash.o
 LIBERTYLIB = readliberty.o
 SOURCES := $(patsubst %.o,%.c,$(OBJECTS))
 TARGETS := $(patsubst %.o,%$(EXEEXT),$(OBJECTS))
-
-BININSTALL = ${QFLOW_LIB_DIR}/bin
 
 all: $(TARGETS)
 
@@ -49,24 +48,24 @@ spice2delay$(EXEEXT): spice2delay.o $(HASHLIB) $(LIBERTYLIB)
 
 install: $(TARGETS)
 	@echo "Installing verilog and BDNET file format handlers"
-	$(INSTALL) -d $(DESTDIR)${BININSTALL}
+	$(INSTALL) -d $(DESTDIR)${QFLOW_BIN_DIR}
 	@for target in $(TARGETS); do \
-	   $(INSTALL) $$target $(DESTDIR)${BININSTALL} ;\
+	   $(INSTALL) $$target $(DESTDIR)${QFLOW_BIN_DIR} ;\
 	done
 	@echo "Installing links to graywolf, qrouter, odin_ii, and abc"
-	(cd $(DESTDIR)${BININSTALL};  $(RM) -f graywolf;  ln -s $(QFLOW_GRAYWOLF_PATH) graywolf)
-	(cd $(DESTDIR)${BININSTALL};  $(RM) -f qrouter;  ln -s $(QFLOW_QROUTER_PATH) qrouter)
+	(cd $(DESTDIR)${QFLOW_BIN_DIR};  $(RM) -f graywolf;  ln -s $(QFLOW_GRAYWOLF_PATH) graywolf)
+	(cd $(DESTDIR)${QFLOW_BIN_DIR};  $(RM) -f qrouter;  ln -s $(QFLOW_QROUTER_PATH) qrouter)
 	@if test "${HAVE_ABC}" = "1"; then \
-	(cd $(DESTDIR)${BININSTALL};  $(RM) -f abc;  ln -s $(QFLOW_ABC_PATH) abc); \
+	(cd $(DESTDIR)${QFLOW_BIN_DIR};  $(RM) -f abc;  ln -s $(QFLOW_ABC_PATH) abc); \
 	fi
-	(cd $(DESTDIR)${BININSTALL};  $(RM) -f magic;  ln -s $(QFLOW_MAGIC_PATH) magic)
+	(cd $(DESTDIR)${QFLOW_BIN_DIR};  $(RM) -f magic;  ln -s $(QFLOW_MAGIC_PATH) magic)
 	@if test "${HAVE_YOSYS}" = "1"; then \
-	(cd $(DESTDIR)${BININSTALL};  $(RM) -f yosys;  ln -s $(QFLOW_YOSYS_PATH) yosys); \
-	(cd $(DESTDIR)${BININSTALL};  $(RM) -f yosys-abc;  ln -s $(QFLOW_YOSYS_PATH)-abc yosys-abc); \
+	(cd $(DESTDIR)${QFLOW_BIN_DIR};  $(RM) -f yosys;  ln -s $(QFLOW_YOSYS_PATH) yosys); \
+	(cd $(DESTDIR)${QFLOW_BIN_DIR};  $(RM) -f yosys-abc;  ln -s $(QFLOW_YOSYS_PATH)-abc yosys-abc); \
 	fi
 
 uninstall:
-	$(RM) -rf ${BININSTALL}
+	$(RM) -rf ${QFLOW_BIN_DIR}
 
 clean:
 	$(RM) -f $(OBJECTS) $(HASHLIB) $(LIBERTYLIB)

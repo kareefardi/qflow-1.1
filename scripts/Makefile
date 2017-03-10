@@ -4,17 +4,17 @@
 
 # Main compiler arguments
 CFLAGS = -g -O2
-DEFS = -DPACKAGE_NAME=\"\" -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\" -DPACKAGE_BUGREPORT=\"\" -DPACKAGE_URL=\"\" -DSTDC_HEADERS=1 -DHAVE_SETENV=1 -DHAVE_PUTENV=1 -DTCLSH_PATH=\"/bin/tclsh\" -DQFLOW_MAGIC_PATH=\"/usr/local/bin/magic\" -DQFLOW_QROUTER_PATH=\"/usr/local/bin/qrouter\" -DQFLOW_GRAYWOLF_PATH=\"/usr/local/bin/graywolf\" -DQFLOW_YOSYS_PATH=\"/usr/local/bin/yosys\"
+DEFS = -DPACKAGE_NAME=\"\" -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\" -DPACKAGE_BUGREPORT=\"\" -DPACKAGE_URL=\"\" -DSTDC_HEADERS=1 -DHAVE_SETENV=1 -DHAVE_PUTENV=1 -DTCLSH_PATH=\"/usr/bin/tclsh\" -DQFLOW_MAGIC_PATH=\"/usr/bin/magic\" -DQFLOW_QROUTER_PATH=\"/usr/bin/qrouter\" -DQFLOW_GRAYWOLF_PATH=\"/usr/bin/graywolf\" -DQFLOW_YOSYS_PATH=\"/usr/bin/yosys\"
 LIBS = 
 LDFLAGS = 
-INSTALL = /bin/install -c
+INSTALL = /usr/bin/install -c
 
 VERSION = 1.1
-REVISION = 33
+REVISION = 42
 
-QFLOW_LIB_DIR = /usr/local/share/qflow
-QFLOW_BIN_DIR = /usr/local/bin
-TCLSH_PATH = /bin/tclsh
+QFLOW_LIB_DIR = /usr/share/qflow
+QFLOW_BIN_DIR = /usr/bin
+TCLSH_PATH = /usr/bin/tclsh
 
 DEFAULTPARSER = @QFLOW_DEFAULT_PARSER@
 
