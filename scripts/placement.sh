@@ -129,8 +129,22 @@ cd ${projectpath}
 
 echo "Running blif2cel.tcl" |& tee -a ${synthlog}
 
-${scriptdir}/blif2cel.tcl --blif ${synthdir}/${rootname}.blif \
-	--lef ${lefpath} --cel ${layoutdir}/${rootname}.cel >>& ${synthlog}
+set blif2cel_commands = ""
+
+if ( ${?hard_cells} ) then
+	foreach cell (${hard_cells})
+		set blif2cel_commands = "${blif2cel_commands} --hard-makro ${cell}"
+	end
+endif
+
+if ( ${?pad_config} ) then
+	set blif2cel_commands = "${blif2cel_commands} --pad-config ${pad_config}"
+endif
+
+${scriptdir}/blif2cel.tcl \
+	--blif ${synthdir}/${rootname}.blif\
+	${blif2cel_commands} --lef ${lefpath}\
+	--cel ${layoutdir}/${rootname}.cel >>& ${synthlog}
 
 #---------------------------------------------------------------------
 # Spot check:  Did blif2cel produce file ${rootname}.cel?

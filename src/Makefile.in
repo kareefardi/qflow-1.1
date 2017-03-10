@@ -52,17 +52,6 @@ install: $(TARGETS)
 	@for target in $(TARGETS); do \
 	   $(INSTALL) $$target $(DESTDIR)${QFLOW_BIN_DIR} ;\
 	done
-	@echo "Installing links to graywolf, qrouter, odin_ii, and abc"
-	(cd $(DESTDIR)${QFLOW_BIN_DIR};  $(RM) -f graywolf;  ln -s $(QFLOW_GRAYWOLF_PATH) graywolf)
-	(cd $(DESTDIR)${QFLOW_BIN_DIR};  $(RM) -f qrouter;  ln -s $(QFLOW_QROUTER_PATH) qrouter)
-	@if test "${HAVE_ABC}" = "1"; then \
-	(cd $(DESTDIR)${QFLOW_BIN_DIR};  $(RM) -f abc;  ln -s $(QFLOW_ABC_PATH) abc); \
-	fi
-	(cd $(DESTDIR)${QFLOW_BIN_DIR};  $(RM) -f magic;  ln -s $(QFLOW_MAGIC_PATH) magic)
-	@if test "${HAVE_YOSYS}" = "1"; then \
-	(cd $(DESTDIR)${QFLOW_BIN_DIR};  $(RM) -f yosys;  ln -s $(QFLOW_YOSYS_PATH) yosys); \
-	(cd $(DESTDIR)${QFLOW_BIN_DIR};  $(RM) -f yosys-abc;  ln -s $(QFLOW_YOSYS_PATH)-abc yosys-abc); \
-	fi
 
 uninstall:
 	$(RM) -rf ${QFLOW_BIN_DIR}

@@ -109,11 +109,21 @@ if ( !( -f ${rootname}.v )) then
 		|& tee -a ${synthlog}
 endif
 
+
 cat > ${rootname}.ys << EOF
 # Synthesis script for yosys created by qflow
 read_liberty -lib -ignore_miss_dir -setattr blackbox ${libertypath}
-read_verilog ${rootname}.v
 EOF
+
+if ( !( ${?liberty_files} )) then
+	echo "No additional liberty files specified"
+else
+	foreach cell (${liberty_files})
+		echo "read_liberty -lib -ignore_miss_dir -setattr blackbox ${cell}" >> ${rootname}.ys
+	end
+endif
+
+echo "read_verilog ${rootname}.v" >> ${rootname}.ys
 
 foreach subname ( $uniquedeplist )
     if ( !( -f ${subname}.v )) then
@@ -164,6 +174,7 @@ set blif_opts = "${blif_opts} -buf ${bufcell} ${bufpin_in} ${bufpin_out}"
 
 # Determine version of yosys
 set versionstring = `${bindir}/yosys -V | cut -d' ' -f2`
+set versionstring = `echo $versionstring | sed 's/+//g'`
 set major = `echo $versionstring | cut -d. -f1`
 set minor = `echo $versionstring | cut -d. -f2`
 
@@ -188,6 +199,7 @@ cat > ${rootname}.ys << EOF
 # Synthesis script for yosys created by qflow
 EOF
 
+
 # From yosys version 3.0.0+514, structural verilog using cells from the
 # the same standard cell set that is mapped by abc is supported.
 if (( ${major} == 0 && ${minor} == 3 && ${revision} == 0 && ${subrevision} >= 514) || \
@@ -197,12 +209,16 @@ if (( ${major} == 0 && ${minor} == 3 && ${revision} == 0 && ${subrevision} >= 51
 cat > ${rootname}.ys << EOF
 read_liberty -lib -ignore_miss_dir -setattr blackbox ${libertypath}
 EOF
+
+if ( !( ${?liberty_files} )) then
+	echo "No additional liberty files specified"
+else
+	foreach cell (${liberty_files})
+		echo "read_liberty -lib -ignore_miss_dir -setattr blackbox ${cell}" >> ${rootname}.ys
+	end
 endif
 
-cat > ${rootname}.ys << EOF
-read_liberty -lib -ignore_miss_dir -setattr blackbox ${libertypath}
-read_verilog ${rootname}.v
-EOF
+echo "read_verilog ${rootname}.v" >> ${rootname}.ys
 
 foreach subname ( $uniquedeplist )
     echo "read_verilog ${subname}.v" >> ${rootname}.ys
@@ -232,6 +248,9 @@ if ( ${?yosys_script} ) then
    endif
 else if ( ${major} != 0 || ${minor} >= 5 ) then
 
+
+
+if ( !( ${?yosys_noopt} )) then
    cat >> ${rootname}.ys << EOF
 
 # High-level synthesis
@@ -243,20 +262,62 @@ else
    cat >> ${rootname}.ys << EOF
 
 # High-level synthesis
-proc; memory; opt; fsm; opt
-
-# Map to internal cell library
-techmap; opt
+synth -top ${rootname} -run proc
+synth -top ${rootname} -run check
+#synth -top ${rootname} -run wreduce
+synth -top ${rootname} -run alumacc
+synth -top ${rootname} -run share
+synth -top ${rootname} -run fsm
+proc
+memory
+techmap
 EOF
 
 endif
 
+else
+
+if ( !( ${?yosys_noopt} )) then
+cat >> ${rootname}.ys << EOF
+
+# High-level synthesis
+proc; memory; opt; fsm; opt
+
+# Map to internal cell library
+techmap; opt
+
+EOF
+
+endif
+endif
+
+
 cat >> ${rootname}.ys << EOF
 # Map register flops
 dfflibmap -liberty ${libertypath}
-opt
-
 EOF
+
+if ( !( ${?liberty_files} )) then
+	echo "No additional liberty files specified"
+else
+	foreach cell (${liberty_files})
+		echo "dfflibmap -liberty ${cell}" >> ${rootname}.ys
+	end
+endif
+
+if ( !( ${?yosys_noopt} )) then
+
+cat >> ${rootname}.ys << EOF
+opt
+EOF
+
+else
+
+cat >> ${rootname}.ys << EOF
+# yosys_noopt has been set
+EOF
+
+endif
 
 if ( ${?abc_script} ) then
    if ( ${abc_script} != "" ) then
@@ -319,12 +380,28 @@ EOF
    endif
 endif
 
+if ( !( ${?yosys_noopt} )) then
+
 cat >> ${rootname}.ys << EOF
 # Cleanup
 opt
 clean
-write_blif ${blif_opts} ${rootname}_mapped.blif
+
+#Write file
+write_blif -top ${rootname} ${blif_opts} ${rootname}_mapped.blif
+
 EOF
+
+else
+
+cat >> ${rootname}.ys << EOF
+
+#Write file
+write_blif -top ${rootname} ${blif_opts} ${rootname}_mapped.blif
+
+EOF
+
+endif
 
 #---------------------------------------------------------------------
 # Yosys synthesis
