@@ -181,7 +181,7 @@ endif
 # information to GrayWolf for a final placement pass using fill to
 # break up congested areas.
 
-if ( -f ${rootname}.acel && ( -M ${rootname}.acel > -M ${rootname}.cel )) then
+if ( -f ${rootname}.acel && ( -M ${rootname}.acel >= -M ${rootname}.cel )) then
    cp ${rootname}.cel ${rootname}.cel.bak
    mv ${rootname}.acel ${rootname}.cel
    set final = 1
@@ -222,7 +222,7 @@ endif
 # powerbus.tcl creates a .acel file if successful.  If not, then
 # leave the .cel file in place
 
-if ( -f ${rootname}.acel && ( -M ${rootname}.acel > -M ${rootname}.cel )) then
+if ( -f ${rootname}.acel && ( -M ${rootname}.acel >= -M ${rootname}.cel )) then
    cp ${rootname}.cel ${rootname}.cel.bak
    mv ${rootname}.acel ${rootname}.cel
 endif
@@ -365,7 +365,7 @@ if ($makedef == 1) then
          echo "read_lef ${techlefpath}" >> ${rootname}.cfg
       endif
       echo "read_lef ${lefpath}" >> ${rootname}.cfg
-      echo "catch layers ${route_layers}" >> ${rootname}.cfg
+      echo "catch {layers ${route_layers}}" >> ${rootname}.cfg
       if ( ${?via_pattern} ) then
          echo "" >> ${rootname}.cfg
          echo "via pattern ${via_pattern}" >> ${rootname}.cfg
