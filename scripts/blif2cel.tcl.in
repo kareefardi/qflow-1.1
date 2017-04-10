@@ -658,10 +658,12 @@ flush stdout
 
 set px [expr int($pitchx / 2)]
 set py [expr int($pitchy / 2)]
+set pmul 1
 
 set pad_fixed False
 array set pad_positions {}
 set placedpads {}
+set powerpads {}
 
 if {[info exists padconfig]} {
 	set pad_fixed True
@@ -677,6 +679,14 @@ if {[info exists padconfig]} {
 			foreach fixed_pad $bank {
 				set pad_positions($fixed_pad) $side
 			}
+		}
+		if [regexp {^[ \t]*power pads:[ \t]+(.*)$} $line lmatch ppads] {
+			foreach ppad $ppads {
+				lappend powerpads $ppad
+			}
+		}
+		if [regexp {^[ \t]*power multiplier:[ \t]+(.*)$} $line lmatch pfactor] {
+			set pmul $pfactor
 		}
 		if [regexp {^[ \t]*side space:[ \t]+(.*)$} $line lmatch len] {
 			set side_space $len
@@ -713,6 +723,18 @@ while {[gets $fnet line] >= 0} {
 	    incr padnum
 	}
     }
+}
+
+foreach pinname $powerpads {
+	for {set i 1} {$i <= $pmul} {incr i} {
+		foreach side [list "T" "L" "R" "B"] {
+			puts $fcel "pad $padnum name twpin_$side.$pinname<$i>"
+			puts $fcel "corners 4 -$px -$py -$px $py $px $py $px -$py  restrict side $side"
+			puts $fcel "pin name $pinname signal $pinname layer 1 0 0"
+			puts $fcel ""
+			incr padnum
+		}
+	}
 }
 
 puts stdout "Done!"
