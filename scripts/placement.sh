@@ -133,12 +133,20 @@ set blif2cel_commands = ""
 
 if ( ${?hard_cells} ) then
 	foreach cell (${hard_cells})
-		set blif2cel_commands = "${blif2cel_commands} --hard-makro ${cell}"
+		set blif2cel_commands = "${blif2cel_commands} --hard-macro ${cell}"
 	end
 endif
 
 if ( ${?pad_config} ) then
 	set blif2cel_commands = "${blif2cel_commands} --pad-config ${pad_config}"
+endif
+
+if ( ${?vddnet} ) then
+	set blif2cel_commands = "${blif2cel_commands} --vdd-net ${vddnet}"
+endif
+
+if ( ${?gndnet} ) then
+	set blif2cel_commands = "${blif2cel_commands} --gnd-net ${gndnet}"
 endif
 
 ${scriptdir}/blif2cel.tcl \
