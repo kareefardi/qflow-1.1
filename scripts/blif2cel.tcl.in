@@ -64,6 +64,10 @@ while {$index < $arglen} {
 	    set gndnet [lindex $argv [incr index]]
 	}
 
+	--force-power-net {
+	    set power_force 
+	}
+
 	default  {
 	    set filename [lindex $argv $index]
 	}
@@ -645,22 +649,24 @@ while {[gets $fnet line] >= 0} {
 	    flush stdout
 	}
 
-	if {[info exists vddnet]} {
-		set pinx [set ${mode}(${vddnet},xp)]
-		set piny [set ${mode}(${vddnet},yp)]
-		set pinlayer [set ${mode}(${vddnet},layer)]
-		set pintype [set ${mode}(${vddnet},type)]
-		puts -nonewline $fcel "pin name $vddnet signal $vddnet layer "
-		puts $fcel "$pinlayer $pinx $piny"
-	}
+	if {[info exists power_force]} {
+		if {[info exists vddnet]} {
+			set pinx [set ${mode}(${vddnet},xp)]
+			set piny [set ${mode}(${vddnet},yp)]
+			set pinlayer [set ${mode}(${vddnet},layer)]
+			set pintype [set ${mode}(${vddnet},type)]
+			puts -nonewline $fcel "pin name $vddnet signal $vddnet layer "
+			puts $fcel "$pinlayer $pinx $piny"
+		}
 
-	if {[info exists gndnet]} {
-		set pinx [set ${mode}(${gndnet},xp)]
-		set piny [set ${mode}(${gndnet},yp)]
-		set pinlayer [set ${mode}(${gndnet},layer)]
-		set pintype [set ${mode}(${gndnet},type)]
-		puts -nonewline $fcel "pin name $gndnet signal $gndnet layer "
-		puts $fcel "$pinlayer $pinx $piny"
+		if {[info exists gndnet]} {
+			set pinx [set ${mode}(${gndnet},xp)]
+			set piny [set ${mode}(${gndnet},yp)]
+			set pinlayer [set ${mode}(${gndnet},layer)]
+			set pintype [set ${mode}(${gndnet},type)]
+			puts -nonewline $fcel "pin name $gndnet signal $gndnet layer "
+			puts $fcel "$pinlayer $pinx $piny"
+		}
 	}
 
 
