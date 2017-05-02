@@ -224,7 +224,7 @@ while {[gets $fcel line] >= 0} {
          for {set b 1} {$b <= $est_numrows} {incr b} {
             puts $fcel ""
             puts $fcel "cell $i PWRBUS_$j"
-            puts $fcel "initially fixed 0 from left of block $b
+            puts $fcel "initially fixed 0 from left of block $b"
             puts $fcel "left $left right $right bottom $bottom top $top"
             puts $fcel ""
             incr i
@@ -234,7 +234,7 @@ while {[gets $fcel line] >= 0} {
          for {set b 1} {$b <= $est_numrows} {incr b} {
             puts $fcel ""
             puts $fcel "cell $i PWRBUS_$j"
-            puts $fcel "initially fixed 0 from right of block $b
+            puts $fcel "initially fixed 0 from right of block $b"
             puts $fcel "left $left right $right bottom $bottom top $top"
             puts $fcel ""
             incr i
