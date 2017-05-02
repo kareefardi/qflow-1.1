@@ -149,6 +149,14 @@ if ( ${?gndnet} ) then
 	set blif2cel_commands = "${blif2cel_commands} --gnd-net ${gndnet}"
 endif
 
+if ( ${?pad_width} ) then
+	set blif2cel_commands = "${blif2cel_commands} --pad-width ${pad_width}"
+endif
+
+if ( ${?pad_height} ) then
+	set blif2cel_commands = "${blif2cel_commands} --pad-height ${pad_height}"
+endif
+
 ${scriptdir}/blif2cel.tcl \
 	--blif ${synthdir}/${rootname}.blif\
 	${blif2cel_commands} --lef ${lefpath}\

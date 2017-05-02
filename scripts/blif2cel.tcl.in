@@ -56,6 +56,14 @@ while {$index < $arglen} {
 	    set padconfig [lindex $argv [incr index]]
 	}
 
+	--pad-width {
+	    set padx_len [lindex $argv [incr index]]
+	}
+
+	--pad-height {
+	    set pady_len [lindex $argv [incr index]]
+	}
+
 	--vdd-net {
 	    set vddnet [lindex $argv [incr index]]
 	}
@@ -690,8 +698,6 @@ close $fnet
 puts stdout "3rd pass of blif file. . ."
 flush stdout
 
-set px [expr int($pitchx / 2)]
-set py [expr int($pitchy / 2)]
 set pmul 1
 
 set pad_fixed False
@@ -726,6 +732,18 @@ if {[info exists padconfig]} {
 			set side_space $len
 		}
 	}
+}
+
+if {[info exists padx]} {
+	set px $padx
+} else {
+	set px [expr int($pitchx / 2)]
+}
+
+if {[info exists pady]} {
+	set py $pady
+} else {
+	set py [expr int($pitchy / 2)]
 }
 
 set fnet [open $bliffile r]
