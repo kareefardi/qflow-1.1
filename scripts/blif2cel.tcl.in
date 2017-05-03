@@ -734,14 +734,14 @@ if {[info exists padconfig]} {
 	}
 }
 
-if {[info exists padx]} {
-	set px $padx
+if {[info exists padx_len]} {
+	set px $padx_len
 } else {
 	set px [expr int($pitchx / 2)]
 }
 
-if {[info exists pady]} {
-	set py $pady
+if {[info exists pady_len]} {
+	set py $pady_len
 } else {
 	set py [expr int($pitchy / 2)]
 }
