@@ -131,8 +131,6 @@ else
 	end
 endif
 
-echo "read_verilog ${rootname}.v" >> ${rootname}.ys
-
 foreach subname ( $uniquedeplist )
     if ( !( -f ${subname}.${vext} )) then
 	echo "Error:  Verilog source file ${subname}.${vext} cannot be found!" \
