@@ -104,15 +104,23 @@ while ($yerrcnt > 1)
 # works in yosys 0.3.1 and newer, the following line works for the
 # purpose of querying the hierarchy in all versions.
 
-if ( !( -f ${rootname}.v )) then
-   echo "Error:  Verilog source file ${rootname}.v cannot be found!" \
+set vext = "v"
+set svopt = ""
+
+if ( !( -f ${rootname}.${vext} )) then
+   set vext = "sv"
+   set svopt = "-sv"
+   if ( !( -f ${rootname}.${vext} )) then
+      echo "Error:  Verilog source file ${rootname}.v (or .sv) cannot be found!" \
 		|& tee -a ${synthlog}
+   endif
 endif
 
 
 cat > ${rootname}.ys << EOF
 # Synthesis script for yosys created by qflow
 read_liberty -lib -ignore_miss_dir -setattr blackbox ${libertypath}
+read_verilog ${svopt} ${rootname}.${vext}
 EOF
 
 if ( !( ${?liberty_files} )) then
@@ -126,11 +134,11 @@ endif
 echo "read_verilog ${rootname}.v" >> ${rootname}.ys
 
 foreach subname ( $uniquedeplist )
-    if ( !( -f ${subname}.v )) then
-	echo "Error:  Verilog source file ${subname}.v cannot be found!" \
-		|& tee -a ${synthlog}
+    if ( !( -f ${subname}.${vext} )) then
+	echo "Error:  Verilog source file ${subname}.${vext} cannot be found!" \
+			|& tee -a ${synthlog}
     endif
-    echo "read_verilog ${subname}.v" >> ${rootname}.ys
+    echo "read_verilog ${svopt} ${subname}.${vext}" >> ${rootname}.ys
 end
 
 cat >> ${rootname}.ys << EOF
@@ -218,10 +226,13 @@ else
 	end
 endif
 
-echo "read_verilog ${rootname}.v" >> ${rootname}.ys
+cat > ${rootname}.ys << EOF
+read_liberty -lib -ignore_miss_dir -setattr blackbox ${libertypath}
+read_verilog ${svopt} ${rootname}.${vext}
+EOF
 
 foreach subname ( $uniquedeplist )
-    echo "read_verilog ${subname}.v" >> ${rootname}.ys
+    echo "read_verilog ${svopt} ${subname}.${vext}" >> ${rootname}.ys
 end
 
 # Will not support yosys 0.0.x syntax; flag a warning instead
@@ -386,19 +397,8 @@ cat >> ${rootname}.ys << EOF
 # Cleanup
 opt
 clean
-
-#Write file
-write_blif -top ${rootname} ${blif_opts} ${rootname}_mapped.blif
-
-EOF
-
-else
-
-cat >> ${rootname}.ys << EOF
-
-#Write file
-write_blif -top ${rootname} ${blif_opts} ${rootname}_mapped.blif
-
+rename -enumerate
+write_blif ${blif_opts} ${rootname}_mapped.blif
 EOF
 
 endif
@@ -608,17 +608,8 @@ ${bindir}/blif2Verilog -c -v ${vddnet} -g ${gndnet} ${rootname}.blif \
 ${bindir}/blif2Verilog -c -p -v ${vddnet} -g ${gndnet} ${rootname}.blif \
 	> ${rootname}.rtlnopwr.v
 
-echo "Running blif2BSpice." |& tee -a ${synthlog}
-if ("x${spicefile}" == "x") then
-    set spiceopt=""
-else
-    set spiceopt="-l ${spicepath}"
-endif
-${bindir}/blif2BSpice -p ${vddnet} -g ${gndnet} ${spiceopt} \
-	${rootname}.blif > ${rootname}.spc
-
 #---------------------------------------------------------------------
-# Spot check:  Did blif2Verilog or blif2BSpice exit with an error?
+# Spot check:  Did blif2Verilog exit with an error?
 # Note that these files are not critical to the main synthesis flow,
 # so if they are missing, we flag a warning but do not exit.
 #---------------------------------------------------------------------
@@ -635,29 +626,44 @@ if ( !( -f ${rootname}.rtlnopwr.v || \
                 |& tee -a ${synthlog}
 endif
 
+#---------------------------------------------------------------------
+
+echo "Running blif2BSpice." |& tee -a ${synthlog}
+if ("x${spicefile}" == "x") then
+    set spiceopt=""
+else
+    set spiceopt="-l ${spicepath}"
+endif
+${bindir}/blif2BSpice -i -p ${vddnet} -g ${gndnet} ${spiceopt} \
+	${rootname}.blif > ${rootname}.spc
+
+#---------------------------------------------------------------------
+# Spot check:  Did blif2BSpice exit with an error?
+# Note that these files are not critical to the main synthesis flow,
+# so if they are missing, we flag a warning but do not exit.
+#---------------------------------------------------------------------
+
 if ( !( -f ${rootname}.spc || \
         ( -M ${rootname}.spc < -M ${rootname}.blif ))) then
    echo "blif2BSpice failure:  No file ${rootname}.spc created." \
                 |& tee -a ${synthlog}
-   echo "Premature exit." |& tee -a ${synthlog}
-   echo "Synthesis flow stopped due to error condition." >> ${synthlog}
-   exit 1
+else
+
+   echo "Running spi2xspice.py" |& tee -a ${synthlog}
+   if ("x${spicefile}" == "x") then
+       set spiceopt=""
+   else
+       set spiceopt="-l ${spicepath}"
+   endif
+   ${scriptdir}/spi2xspice.py ${libertypath} ${rootname}.spc \
+		${rootname}.xspice
 endif
 
-
-#---------------------------------------------------------------------
-# Spot check:  Did blif2cel produce file ${rootname}.cel?
-#---------------------------------------------------------------------
-# 
-# if ( !( -f ${layoutdir}/${rootname}.cel || ( -M ${layoutdir}/${rootname}.cel \
-# 	< -M ${rootname}.blif ))) then
-#    echo "blif2cel failure:  No file ${rootname}.cel." |& tee -a ${synthlog}
-#    echo "blif2cel was called with arguments: ${synthdir}/${rootname}.blif "
-#    echo "      ${lefpath} ${layoutdir}/${rootname}.cel"
-#    echo "Premature exit." |& tee -a ${synthlog}
-#    echo "Synthesis flow stopped due to error condition." >> ${synthlog}
-#    exit 1
-# endif
+if ( !( -f ${rootname}.xspice || \
+	( -M ${rootname}.xspice < -M ${rootname}.spc ))) then
+   echo "spi2xspice.py failure:  No file ${rootname}.xspice created." \
+		|& tee -a ${synthlog}
+endif
 
 #---------------------------------------------------------------------
 
