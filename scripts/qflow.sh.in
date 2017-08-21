@@ -34,8 +34,7 @@ if ( $project == "" ) then
    set project=`pwd`
 endif
 
-# Source file is not specified unless given on the command line,
-# or if there is only one source file in the source directory.
+set modulename=""
 set vsource=""
 
 # Don't do anything unless told to on the command line
@@ -46,7 +45,7 @@ set dosynth=0
 set doplace=0
 set dosta=0
 set doroute=0
-set dodecongest=0
+set dobackanno=0
 set doclean=0
 set dodisplay=0
 
@@ -87,6 +86,7 @@ while ($#argv > 0)
 	 shift
 	 breaksw
       case sta:
+      case vesta:
 	 set dosta=1
 	 set actions=1
 	 shift
@@ -96,15 +96,15 @@ while ($#argv > 0)
 	 set actions=1
 	 shift
 	 breaksw
-      case decongest:
-	 set dodecongest=1
+      case backanno:
+	 set dobackanno=1
 	 shift
 	 breaksw
       case build:
 	 set dosynth=1
 	 set doplace=1
 	 set doroute=1
-	 set dodecongest=1
+	 set dobackanno=1
 	 set actions=1
 	 shift
 	 breaksw
@@ -113,7 +113,7 @@ while ($#argv > 0)
 	 set doplace=1
 	 set dosta=1
 	 set doroute=1
-	 set dodecongest=1
+	 set dobackanno=1
 	 set doclean=1
 	 set dodisplay=1
 	 set actions=1
@@ -133,10 +133,10 @@ while ($#argv > 0)
 	 shift
 	 breaksw
       default:
-	 if ($vsource != "") then
+	 if ($modulename != "") then
 	    break
 	 else
-	    set vsource=$argv[1]
+	    set modulename=$argv[1]
 	    shift
 	 endif
 	 breaksw
@@ -156,17 +156,17 @@ if ($dohelp == 1 || $#argv != 0) then
    echo "Usage: qflow [processes] [options] <module_name>"
    echo "Processes:  synthesize			Synthesize verilog source"
    echo "            place			Run initial placement"
-   echo "	     sta			Static timing analysis"
+   echo "            sta			Static timing analysis"
    echo "            route			Run placement and route"
-   echo "	     decongest			Run congestion analysis, final place and route"
+   echo "            backanno			Post-route timing analysis"
    echo "            clean			Remove temporary working files"
    echo "            display			Display routed result"
    echo ""
-   echo "	     build			Run scripts synthesize to route"
-   echo "	     all			Run scripts synthesize to display"
+   echo "            build			Run scripts synthesize to route"
+   echo "            all			Run scripts synthesize to display"
    echo ""
    echo "Options:    -T, --tech <name>		Use technology <name>"
-   echo "	     -p, --project <name>	Project root directory is <name>"
+   echo "            -p, --project <name>	Project root directory is <name>"
    if ($dohelp == 1) then
       exit 0
    else
@@ -190,18 +190,48 @@ endif
 
 source QFLOW_SCRIPT_DIR/checkdirs.sh ${tech} ${project}
 
-if ($vsource == "") then
-   if (`ls ${sourcedir}/*.v | wc -l` == 1) then
+set nvsrc = `ls ${sourcedir}/*.v | grep -v match | wc -l`
+set nsvsrc = `ls ${sourcedir}/*.sv | wc -l`
+
+# Verilog file root name is the same as the module name, at least until
+# discovered otherwise.  If the module name is not given on the command
+# line, then there must be one source file and the filename root and
+# module name must match.
+
+if ($modulename == "") then
+   if ($nvsrc == 1) then
       set vsource=`ls ${sourcedir}/*.v`
+      set modulename=${vsource:r}
+   else if ($nsvsrc == 1) then
+      set vsource=`ls ${sourcedir}/*.sv`
+      set modulename=${vsource:r}
+   else if ($nvsrc == 0 && $nsvsrc == 0) then
+      echo "Error:  No verilog source files found in directory ${sourcedir}."
+      exit 1
    else
       echo "Error:  No verilog source file or module name has been specified"
       echo "and directory ${sourcedir} contains multiple verilog files."
+      echo "Please specify the source file or module name on the command line."
       exit 1
    endif
 endif
 
-# Module name is the root name of the verilog source file.
-set modulename=${vsource:r}
+if ($vsource == "") then
+   # Check all .v and .sv files for one with the specified module.
+
+   foreach file ( `ls ${sourcedir}/*.v ${sourcedir}/*.sv` )
+      set mline = `cat $file | grep module | grep ${modulename} | wc -l`
+      if ( $mline > 0 ) then
+	 set vsource = ${file}
+	 break
+      endif
+   end
+
+   if ( ${vsource} == "" ) then
+      echo "Error:  No verilog file in ${sourcedir} contains module ${modulename}."
+      exit 1
+   endif
+endif
 
 #------------------------------------------------------------------
 # Source the technology initialization script
@@ -255,7 +285,7 @@ echo "set layoutdir=${layoutdir}" >> ${varfile}
 echo "set techname=${techname}" >> ${varfile}
 echo "set scriptdir=${scriptdir}" >> ${varfile}
 echo "set bindir=${bindir}" >> ${varfile}
-echo "set synthlog=${projectpath}/synth.log" >> ${varfile}
+echo "set logdir=${projectpath}/log" >> ${varfile}
 echo "#-------------------------------------------" >> ${varfile}
 echo "" >> ${varfile}
 
@@ -296,13 +326,14 @@ if ( ! -f ${userfile} ) then
    echo "" >> ${userfile}
    echo "# Router command options:" >> ${userfile}
    echo "# -------------------------------------------" >> ${userfile}
+   echo "# set route_show = " >> ${userfile}
    echo "# set route_layers = " >> ${userfile}
    echo "# set via_stacks = " >> ${userfile}
    echo "# set qrouter_options = " >> ${userfile}
    echo ""
    echo "" >> ${userfile}
    echo "# Minimum operating period of the clock (in ps)" >> ${userfile}
-   echo '# set vesta_options = "--period 1E5"' >> ${userfile}
+   echo '# set vesta_options = "--summary reports --long --period 1E5"' >> ${userfile}
    echo "" >> ${userfile}
    echo "#------------------------------------------------------------" >> ${userfile}
    echo "" >> ${userfile}
@@ -311,7 +342,11 @@ endif
 if ($dosynth == 0) then
    echo -n "# " >> ${execfile}
 endif
-echo "${scriptdir}/synthesize.sh ${projectpath} ${modulename} || exit 1" >> ${execfile}
+if ( ${vsource} == "" ) then
+   echo "${scriptdir}/synthesize.sh ${projectpath} ${modulename} || exit 1" >> ${execfile}
+else
+   echo "${scriptdir}/synthesize.sh ${projectpath} ${modulename} ${vsource} || exit 1" >> ${execfile}
+endif
 
 if ($doplace == 0) then
    echo -n "# " >> ${execfile}
@@ -330,16 +365,10 @@ if ($doroute == 0) then
 endif
 echo "${scriptdir}/router.sh ${projectpath} ${modulename} || exit 1" >> ${execfile}
 
-if ($dodecongest == 0) then
+if ($dobackanno == 0) then
    echo -n "# " >> ${execfile}
 endif
-echo "${scriptdir}/placement.sh -f -d ${projectpath} ${modulename} || exit 1" >> ${execfile}
-
-if ($dodecongest == 0) then
-   echo -n "# " >> ${execfile}
-endif
-echo -n "${scriptdir}/router.sh ${projectpath} ${modulename} || exit 1" >> ${execfile}
-echo ' $status' >> ${execfile}
+echo "${scriptdir}/vesta.sh -d ${projectpath} ${modulename} || exit 1" >> ${execfile}
 
 if ($doclean == 0) then
    echo -n "# " >> ${execfile}

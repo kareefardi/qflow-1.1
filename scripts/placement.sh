@@ -106,15 +106,23 @@ else
    set spicepath=${techdir}/${spicefile}
 endif
 
-# logfile should exist, but just in case. . .
+mkdir -p ${logdir}
+set lastlog=${logdir}/synth.log
+set synthlog=${logdir}/place.log
+rm -f ${synthlog} >& /dev/null
+rm -f ${logdir}/sta.log >& /dev/null
+rm -f ${logdir}/route.log >& /dev/null
+rm -f ${logdir}/post_sta.log >& /dev/null
 touch ${synthlog}
+set date=`date`
+echo "Qflow placement logfile created on $date" > ${synthlog}
 
 #----------------------------------------------------------
 # Done with initialization
 #----------------------------------------------------------
 
 # Check if last line of log file says "error condition"
-set errcond = `tail -1 ${synthlog} | grep "error condition" | wc -l`
+set errcond = `tail -1 ${lastlog} | grep "error condition" | wc -l`
 if ( ${errcond} == 1 ) then
    echo "Synthesis flow stopped on error condition.  Placement will not proceed"
    echo "until error condition is cleared."
@@ -364,6 +372,10 @@ if ($makedef == 1) then
          set addspacers_options = ""
       endif
 
+      if ( "$techleffile" != "" ) then
+         set addspacers_options = "-techlef ${techlefpath} ${addspacers_options}"
+      endif
+
       echo "Running addspacers.tcl ${addspacers_options} ${rootname} ${lefpath} ${fillcell}" |& tee -a ${synthlog}
 
       ${scriptdir}/addspacers.tcl ${addspacers_options} \
@@ -465,9 +477,10 @@ if ($makedef == 1) then
       cat ${rootname}.cfg2 >> ${rootname}.cfg
    else
       if (${scripting} == "T") then
-	 echo "qrouter::standard_route" >> ${rootname}.cfg
-	 # Standard route falls back to the interpreter on failure,
-	 # so make sure that qrouter actually exits.
+	 echo "qrouter::standard_route ${rootname}_route.def false" >> ${rootname}.cfg
+	 echo "qrouter::write_delays ${rootname}.rc" >> ${rootname}.cfg
+	 # Standard_route's automatic quit has been subverted in order
+	 # to write the delay file, so make sure that qrouter actually exits.
 	 echo "quit" >> ${rootname}.cfg
       endif
    endif
@@ -507,6 +520,16 @@ if ($makedef == 1) then
       echo "" >> ${synthlog}
 
       cd ${synthdir}
+
+      #------------------------------------------------------------------
+      # Copy the original rtl.v and rtlnopwr.v for use in comparison of
+      # pre- and post-placement netlists.
+      #------------------------------------------------------------------
+
+      echo "Copying ${rootname}.rtl.v and ${rootname}.rtlnopwr.v to backups"
+      cp ${rootname}.rtl.v ${rootname}_synth.rtl.v
+      cp ${rootname}.rtlnopwr.v ${rootname}_synth.rtlnopwr.v
+
       echo "Running blif2Verilog." |& tee -a ${synthlog}
       ${bindir}/blif2Verilog -c -v ${vddnet} -g ${gndnet} \
 		${rootname}_anno.blif > ${rootname}.rtl.v
